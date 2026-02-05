@@ -1,0 +1,154 @@
+/**
+ * Computers resource operations
+ */
+
+import type { HttpClient } from '../http.js';
+import type { PaginatedIterable } from '../pagination.js';
+import { createPaginatedIterable } from '../pagination.js';
+import type {
+  Computer,
+  ComputerListParams,
+  ComputerListResponse,
+  ComputerCreateData,
+  ComputerUpdateData,
+  ComputerCommand,
+  CommandResult,
+} from '../types/computers.js';
+
+/**
+ * Computers resource operations
+ */
+export class ComputersResource {
+  private readonly httpClient: HttpClient;
+
+  constructor(httpClient: HttpClient) {
+    this.httpClient = httpClient;
+  }
+
+  /**
+   * List computers with optional filtering
+   */
+  async list(params?: ComputerListParams): Promise<ComputerListResponse> {
+    return this.httpClient.request<ComputerListResponse>('/Computers', {
+      params: this.buildListParams(params),
+    });
+  }
+
+  /**
+   * List all computers with automatic pagination
+   */
+  listAll(params?: Omit<ComputerListParams, 'pageSize' | 'page'>): PaginatedIterable<Computer> {
+    return createPaginatedIterable<Computer>(
+      this.httpClient,
+      '/Computers',
+      this.buildListParams(params)
+    );
+  }
+
+  /**
+   * Get a single computer by ID
+   */
+  async get(id: number): Promise<Computer> {
+    return this.httpClient.request<Computer>(`/Computers/${id}`);
+  }
+
+  /**
+   * Create a new computer
+   */
+  async create(data: ComputerCreateData): Promise<Computer> {
+    return this.httpClient.request<Computer>('/Computers', {
+      method: 'POST',
+      body: data,
+    });
+  }
+
+  /**
+   * Update an existing computer
+   */
+  async update(id: number, data: ComputerUpdateData): Promise<Computer> {
+    return this.httpClient.request<Computer>(`/Computers/${id}`, {
+      method: 'PATCH',
+      body: data,
+    });
+  }
+
+  /**
+   * Delete a computer
+   */
+  async delete(id: number): Promise<void> {
+    await this.httpClient.request<void>(`/Computers/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Execute a command on a computer
+   */
+  async executeCommand(id: number, command: ComputerCommand): Promise<CommandResult> {
+    return this.httpClient.request<CommandResult>(`/Computers/${id}/CommandExecute`, {
+      method: 'POST',
+      body: command,
+    });
+  }
+
+  /**
+   * Send a message to a computer (popup)
+   */
+  async sendMessage(id: number, message: string, title?: string): Promise<void> {
+    await this.httpClient.request<void>(`/Computers/${id}/SendMessage`, {
+      method: 'POST',
+      body: { Message: message, Title: title },
+    });
+  }
+
+  /**
+   * Restart a computer
+   */
+  async restart(id: number, force?: boolean, delayMinutes?: number): Promise<void> {
+    await this.httpClient.request<void>(`/Computers/${id}/Restart`, {
+      method: 'POST',
+      body: { Force: force, DelayMinutes: delayMinutes },
+    });
+  }
+
+  /**
+   * Shutdown a computer
+   */
+  async shutdown(id: number, force?: boolean, delayMinutes?: number): Promise<void> {
+    await this.httpClient.request<void>(`/Computers/${id}/Shutdown`, {
+      method: 'POST',
+      body: { Force: force, DelayMinutes: delayMinutes },
+    });
+  }
+
+  /**
+   * Wake up a computer (Wake-on-LAN)
+   */
+  async wakeUp(id: number): Promise<void> {
+    await this.httpClient.request<void>(`/Computers/${id}/WakeUp`, {
+      method: 'POST',
+    });
+  }
+
+  /**
+   * Build query parameters from list params
+   */
+  private buildListParams(params?: ComputerListParams): Record<string, string | number | boolean | undefined> {
+    if (!params) return {};
+
+    const result: Record<string, string | number | boolean | undefined> = {};
+
+    if (params.pageSize !== undefined) result['pageSize'] = params.pageSize;
+    if (params.page !== undefined) result['page'] = params.page;
+    if (params.condition !== undefined) result['condition'] = params.condition;
+    if (params.select !== undefined) result['$select'] = params.select;
+    if (params.orderBy !== undefined) result['$orderby'] = params.orderBy;
+    if (params.expand !== undefined) result['$expand'] = params.expand;
+    if (params.clientId !== undefined) result['clientId'] = params.clientId;
+    if (params.locationId !== undefined) result['locationId'] = params.locationId;
+    if (params.includeOffline !== undefined) result['includeOffline'] = params.includeOffline;
+    if (params.isOnline !== undefined) result['isOnline'] = params.isOnline;
+
+    return result;
+  }
+}
